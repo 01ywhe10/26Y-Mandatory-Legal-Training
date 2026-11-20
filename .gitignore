@@ -1,0 +1,16 @@
+# Employee & LMS Data (PII protection)
+*.xlsx
+*.xls
+*.csv
+training-monitor.html
+
+# Media & Documents
+*.mp4
+*.pdf
+*.jpg
+*.png
+
+# OS & Python cache
+.DS_Store
+__pycache__/
+*.pyc
