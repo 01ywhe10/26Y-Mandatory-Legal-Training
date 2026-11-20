@@ -258,11 +258,15 @@ def main():
     compiled = template.replace("<!-- REPORT_DATA -->", data, 1)
     output.write_text(compiled, encoding="utf-8")
 
-    # Build lookup-only index.html for employee distribution (no admin views or nonTargets)
+    # Build lookup-only index.html for employee distribution (no admin views, nonTargets, position, or jobRole)
+    lookup_records = [
+        {k: v for k, v in r.items() if k not in ("position", "jobRole")}
+        for r in records
+    ]
     lookup_payload = {
         "snapshot": payload["snapshot"],
         "empMasterDate": emp_master_date,
-        "records": records,
+        "records": lookup_records,
     }
     lookup_data = json.dumps(lookup_payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     lookup_html = template

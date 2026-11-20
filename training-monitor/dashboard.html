@@ -448,6 +448,12 @@ const percent = value => `${count(value)}%`;
 const esc = value => String(value).replace(/[&<>"']/g, char => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]
 ));
+function maskName(name) {
+  const chars = Array.from(String(name || "").trim());
+  if (chars.length <= 1) return "*";
+  if (chars.length === 2) return chars[0] + "*";
+  return chars[0] + "*".repeat(chars.length - 2) + chars[chars.length - 1];
+}
 const parentLabel = value => value || "상위조직 미지정";
 const deptLabel = value => value || "부서 미지정";
 const normalized = value => value.trim().normalize("NFC").toLocaleLowerCase("ko-KR");
@@ -584,7 +590,7 @@ function sortGroups(groups, mode) {
   });
 }
 
-function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet, openDeptSet, currentParent, currentDept, showAll) {
+function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet, openDeptSet, currentParent, currentDept, showAll, maskMembers = false) {
   if (!container) return;
 
   if (viewMode === "tree") {
@@ -630,12 +636,15 @@ function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet
         const sortedMembers = [...ch.members].sort((a, b) =>
           Number(a.done) - Number(b.done) || a.progress - b.progress || collator.compare(a.name, b.name)
         );
-        const membersHTML = isDeptOpen ? sortedMembers.map(m => `
-          <button type="button" class="member-pill" data-member-id="${esc(m.id)}">
-            <span class="member-pill-name"><strong>${esc(m.name)}</strong><span>${esc(m.position || "")}</span></span>
+        const membersHTML = isDeptOpen ? sortedMembers.map(m => {
+          const mLabel = maskMembers
+            ? `<strong>${esc(maskName(m.name))}</strong><span class="num">${esc(m.id)}</span>`
+            : `<strong>${esc(m.name)}</strong><span>${esc(m.position || "")}</span>`;
+          return `<button type="button" class="member-pill" data-member-id="${esc(m.id)}">
+            <span class="member-pill-name">${mLabel}</span>
             <span class="member-pill-stat"><span class="member-pill-rate num">${percent(m.progress)}</span>${statusBadge(m.status)}</span>
-          </button>
-        `).join("") : "";
+          </button>`;
+        }).join("") : "";
         return `<div class="tree-child-wrap ${isDeptOpen ? "is-open" : ""}">
           <button class="dept-row" type="button" data-is-parent="false" data-name="${esc(ch.name)}" data-parent="${esc(pg.name)}" aria-pressed="${chPressed}" aria-expanded="${Boolean(isDeptOpen)}">
             <div class="dept-row-label"><span class="dept-caret" aria-hidden="true">▶</span><span>${esc(ch.name)}</span></div>
@@ -717,12 +726,13 @@ function statusBadge(status) {
   return `<span class="status ${type}">${esc(status)}</span>`;
 }
 
-function personDetail(person) {
-  const posBadge = person.position ? `<span class="detail-pos">${esc(person.position)}</span>` : "";
-  const roleText = person.jobRole ? ` · ${esc(person.jobRole)}` : "";
+function personDetail(person, maskMode = false) {
+  const displayName = maskMode ? maskName(person.name) : person.name;
+  const posBadge = !maskMode && person.position ? `<span class="detail-pos">${esc(person.position)}</span>` : "";
+  const roleText = !maskMode && person.jobRole ? ` · ${esc(person.jobRole)}` : "";
   const workplaceText = person.workplace ? ` · 근무지: ${esc(person.workplace)}` : "";
   return `<div class="identity"><span class="avatar" aria-hidden="true">${esc(Array.from(person.name)[0])}</span><div>
-    <h3>${esc(person.name)} ${posBadge}</h3>
+    <h3>${esc(displayName)} ${posBadge}</h3>
     <p class="muted">${esc(person.parentDept)} &gt; <strong>${esc(person.department)}</strong>${roleText}</p>
     <div class="detail-meta">사번 <span class="num">${esc(person.id)}</span>${workplaceText} · <span class="emp-status-badge">${esc(person.employmentStatus)}</span></div>
   </div></div>
@@ -999,7 +1009,7 @@ $("lookup-form").addEventListener("submit", event => {
   const list = candidates.filter(person => matchesParent(person, parentFilter) && matchesDept(person, deptFilter));
   $("lookup-message").textContent = !list.length ? "일치하는 교육 기록이 없습니다." :
     list.length === 1 ? "조회 결과 1명" : `동명이인 ${count(list.length)}명 · 사번과 부서를 확인하세요.`;
-  $("lookup-results").innerHTML = list.map(personDetail).join("");
+  $("lookup-results").innerHTML = list.map(p => personDetail(p, true)).join("");
 });
 
 let lookupDeptMode = "tree";
@@ -1017,7 +1027,7 @@ function renderLookupDepts() {
   const list = roster.filter(person =>
     (lookupDeptMode !== "sub" || (matchesParent(person, parentFilter) && matchesDept(person, deptFilter)))
   );
-  renderDeptPanel(container, $("lookup-toggle-depts"), list, lookupDeptMode, sortMode, lookupOpenTree, lookupOpenDepts, parentFilter, deptFilter, lookupShowAllDepts);
+  renderDeptPanel(container, $("lookup-toggle-depts"), list, lookupDeptMode, sortMode, lookupOpenTree, lookupOpenDepts, parentFilter, deptFilter, lookupShowAllDepts, true);
 }
 
 function setLookupDeptTab(mode) {
@@ -1048,7 +1058,7 @@ $("lookup-dept-bars")?.addEventListener("click", event => {
       updateDeptSelects("lookup-parent-department", "lookup-department");
       $("lookup-department").value = p.department;
       $("lookup-message").textContent = "조회 결과 1명";
-      $("lookup-results").innerHTML = personDetail(p);
+      $("lookup-results").innerHTML = personDetail(p, true);
       $("lookup-results").scrollIntoView({behavior: "smooth", block: "nearest"});
     }
     return;
