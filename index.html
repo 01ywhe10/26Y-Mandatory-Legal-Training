@@ -137,6 +137,17 @@ body.rail-collapsed .rail{display:none}
 .tree-child-wrap:last-child::before{bottom:50%}
 .tree-child-wrap::after{content:"";position:absolute;left:4px;top:50%;width:10px;height:1.5px;background:#cddde9}
 .tree-child-wrap .dept-row{padding:5px 7px;font-size:.83rem}
+.dept-caret{display:inline-block;font-size:.66rem;color:var(--muted);transition:transform .15s;margin-right:3px}
+.tree-child-wrap.is-open .dept-caret{transform:rotate(90deg);color:var(--ci-blue-dark)}
+.tree-members{display:none;margin:4px 0 8px 6px;padding:8px 10px;background:#f8fbfe;border:1px solid #dce8f2;border-radius:8px}
+.tree-child-wrap.is-open .tree-members{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:6px}
+.member-pill{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;background:#fff;border:1px solid #e2ecf5;border-radius:7px;font-size:.8rem;text-align:left;cursor:pointer;transition:all .12s;min-width:0}
+.member-pill:hover{border-color:var(--ci-blue);background:var(--ci-blue-soft)}
+.member-pill-name{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-pill-name strong{color:var(--navy-title);font-weight:700}
+.member-pill-name span{color:var(--muted);font-size:.73rem}
+.member-pill-stat{display:flex;align-items:center;gap:5px;flex:none}
+.member-pill-rate{font-size:.76rem;font-weight:750;color:var(--ci-blue-dark)}
 .dept-grid{display:grid;gap:5px}
 .dept-grid.expanded{max-height:310px;overflow:auto;scrollbar-gutter:stable}
 .dept-row{display:grid;grid-template-columns:minmax(130px,1.4fr) minmax(54px,1.4fr) 58px 64px;align-items:center;gap:10px;width:100%;padding:6px 8px;background:none;border:0;text-align:left;color:var(--ink);border-radius:7px;font-size:.85rem;transition:background .12s}
@@ -237,7 +248,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
 @media(max-width:1170px){.shell{grid-template-columns:186px minmax(0,1fr) 260px}.lookup-mode .shell{grid-template-columns:186px minmax(0,1fr)}.rail{padding-inline:11px}.detail{padding-inline:12px}.content{padding-inline:15px}.brand-ci{max-width:130px}.filters{grid-template-columns:repeat(3,1fr) auto}}
 @media(max-width:1035px){.filters{grid-template-columns:repeat(2,1fr)}.filters .btn{justify-self:start}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.shell{grid-template-columns:155px minmax(0,1fr)}.lookup-mode .shell{grid-template-columns:155px minmax(0,1fr)}.detail{grid-column:2;position:static;height:auto;border-left:0;border-top:1px solid var(--line)}.rail{grid-row:span 2}.table-wrap table{min-width:0}.filters{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.brand-ci{max-width:115px}}
-@media(max-width:600px){.shell,.lookup-mode .shell,.nontarget-mode .shell,body.rail-collapsed .shell,body.rail-collapsed.lookup-mode .shell,body.rail-collapsed.nontarget-mode .shell{display:block;width:100%;max-width:100%}.rail{display:flex;height:auto;position:static;gap:0;padding:10px 12px;flex-direction:column;align-items:stretch}body.rail-collapsed .rail{display:flex}.rail-top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}.brand{flex-direction:row;align-items:center;gap:10px}.brand-logo-card{padding:5px 9px;border-radius:7px}.brand-ci{max-width:96px}.brand-meta small{display:none}.mobile-menu-btn{display:inline-flex}.btn-rail-toggle{display:none}.rail .nav{display:none;padding-top:10px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.1);grid-template-columns:1fr 1fr;gap:6px}.rail.mobile-open .nav{display:grid}.rail .nav a{padding:7px 10px;min-height:38px;font-size:.84rem}.rail .nav-icon,.rail-foot,.crumb{display:none}.content{padding:12px 12px 20px;width:100%;max-width:100%}.top{justify-content:end;margin-bottom:10px}.heading{margin-bottom:14px}h1{font-size:1.5rem}.metrics{grid-template-columns:1fr 1fr;gap:8px}.panel{padding:12px;overflow:hidden}.guide-banner{padding:14px 12px;gap:12px}.panel-actions{gap:6px}.btn-group .btn-sm{padding:4px 8px;font-size:.74rem}.sort-select{height:29px;font-size:.74rem}.tree-parent{grid-template-columns:20px minmax(0,1.35fr) minmax(28px,.65fr) 46px 48px;gap:5px;padding:8px 6px;font-size:.81rem}.tree-parent .parent-chip,.dept-row .parent-chip{display:none}.tree-children{padding:4px 6px 6px 10px}.tree-child-wrap{padding-left:12px}.dept-row{grid-template-columns:minmax(0,1.35fr) minmax(28px,.65fr) 46px 48px;gap:5px;padding:5px 4px;font-size:.8rem}.lookup-layout .filters{grid-template-columns:1fr}.detail{padding:14px 12px}.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table{min-width:460px}}
+@media(max-width:600px){.shell,.lookup-mode .shell,.nontarget-mode .shell,body.rail-collapsed .shell,body.rail-collapsed.lookup-mode .shell,body.rail-collapsed.nontarget-mode .shell{display:block;width:100%;max-width:100%}.rail{display:flex;height:auto;position:static;gap:0;padding:10px 12px;flex-direction:column;align-items:stretch}body.rail-collapsed .rail{display:flex}.rail-top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}.brand{flex-direction:row;align-items:center;gap:10px}.brand-logo-card{padding:5px 9px;border-radius:7px}.brand-ci{max-width:96px}.brand-meta small{display:none}.mobile-menu-btn{display:inline-flex}.btn-rail-toggle{display:none}.rail .nav{display:none;padding-top:10px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.1);grid-template-columns:1fr 1fr;gap:6px}.rail.mobile-open .nav{display:grid}.rail .nav a{padding:7px 10px;min-height:38px;font-size:.84rem}.rail .nav-icon,.rail-foot,.crumb{display:none}.content{padding:12px 12px 20px;width:100%;max-width:100%}.top{justify-content:end;margin-bottom:10px}.heading{margin-bottom:14px}h1{font-size:1.5rem}.metrics{grid-template-columns:1fr 1fr;gap:8px}.panel{padding:12px;overflow:hidden}.guide-banner{padding:14px 12px;gap:12px}.panel-actions{gap:6px}.btn-group .btn-sm{padding:4px 8px;font-size:.74rem}.sort-select{height:29px;font-size:.74rem}.tree-parent{grid-template-columns:20px minmax(0,1.35fr) minmax(28px,.65fr) 46px 48px;gap:5px;padding:8px 6px;font-size:.81rem}.tree-parent .parent-chip,.dept-row .parent-chip{display:none}.tree-children{padding:4px 6px 6px 10px}.tree-child-wrap{padding-left:12px}.tree-child-wrap.is-open .tree-members{grid-template-columns:1fr}.dept-row{grid-template-columns:minmax(0,1.35fr) minmax(28px,.65fr) 46px 48px;gap:5px;padding:5px 4px;font-size:.8rem}.lookup-layout .filters{grid-template-columns:1fr}.detail{padding:14px 12px}.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table{min-width:460px}}
 </style>
 </head>
 <body data-lookup-only="true">
@@ -428,6 +439,7 @@ let filtered = [];
 let showAllDepartments = false;
 let deptViewMode = "tree";
 const adminOpenTree = new Set();
+const adminOpenDepts = new Set();
 
 function matchesParent(person, filter) {
   return filter === "all" || person.parentDept === filter;
@@ -483,7 +495,7 @@ function sortGroups(groups, mode) {
   });
 }
 
-function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet, currentParent, currentDept, showAll) {
+function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet, openDeptSet, currentParent, currentDept, showAll) {
   if (!container) return;
 
   if (viewMode === "tree") {
@@ -516,21 +528,33 @@ function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet
         childMap.get(person.department).push(person);
       }
       const children = sortGroups(Array.from(childMap, ([name, group]) => ({
-        name, parent: pg.name, ...summarize(group)
+        name, parent: pg.name, members: group, ...summarize(group)
       })), sortMode);
 
       const isOpen = openSet.has(pg.name) || currentParent === pg.name;
       const parentPressed = currentParent === pg.name && currentDept === "all";
 
       const childrenHTML = children.map(ch => {
-        const chPressed = currentDept === ch.name;
-        return `<div class="tree-child-wrap">
-          <button class="dept-row" type="button" data-is-parent="false" data-name="${esc(ch.name)}" data-parent="${esc(pg.name)}" aria-pressed="${chPressed}">
-            <div class="dept-row-label"><span>${esc(ch.name)}</span></div>
+        const chKey = `${pg.name}|||${ch.name}`;
+        const isDeptOpen = openDeptSet && openDeptSet.has(chKey);
+        const chPressed = currentDept === ch.name || isDeptOpen;
+        const sortedMembers = [...ch.members].sort((a, b) =>
+          Number(a.done) - Number(b.done) || a.progress - b.progress || collator.compare(a.name, b.name)
+        );
+        const membersHTML = isDeptOpen ? sortedMembers.map(m => `
+          <button type="button" class="member-pill" data-member-id="${esc(m.id)}">
+            <span class="member-pill-name"><strong>${esc(m.name)}</strong><span>${esc(m.position || "")}</span></span>
+            <span class="member-pill-stat"><span class="member-pill-rate num">${percent(m.progress)}</span>${statusBadge(m.status)}</span>
+          </button>
+        `).join("") : "";
+        return `<div class="tree-child-wrap ${isDeptOpen ? "is-open" : ""}">
+          <button class="dept-row" type="button" data-is-parent="false" data-name="${esc(ch.name)}" data-parent="${esc(pg.name)}" aria-pressed="${chPressed}" aria-expanded="${Boolean(isDeptOpen)}">
+            <div class="dept-row-label"><span class="dept-caret" aria-hidden="true">▶</span><span>${esc(ch.name)}</span></div>
             ${progressBar(ch.rate)}
             <span class="dept-rate num">${percent(ch.rate)}</span>
             <span class="dept-count num">${count(ch.completed)}/${count(ch.total)}명</span>
           </button>
+          <div class="tree-members">${membersHTML}</div>
         </div>`;
       }).join("");
 
@@ -596,7 +620,7 @@ function renderDepartments(list) {
   const currentParent = $("parent-department").value;
   const currentDept = $("department").value;
   const sortMode = $("dept-sort")?.value || "pending";
-  renderDeptPanel($("department-bars"), $("toggle-departments"), list, deptViewMode, sortMode, adminOpenTree, currentParent, currentDept, showAllDepartments);
+  renderDeptPanel($("department-bars"), $("toggle-departments"), list, deptViewMode, sortMode, adminOpenTree, adminOpenDepts, currentParent, currentDept, showAllDepartments);
 }
 
 function statusBadge(status) {
@@ -732,6 +756,14 @@ $("toggle-departments")?.addEventListener("click", () => {
 });
 
 $("department-bars")?.addEventListener("click", event => {
+  const memberBtn = event.target.closest("[data-member-id]");
+  if (memberBtn) {
+    selected = people.get(memberBtn.dataset.memberId);
+    renderTable();
+    showDetail(selected);
+    if (window.matchMedia("(max-width: 850px)").matches) $("detail")?.scrollIntoView({behavior: "smooth", block: "start"});
+    return;
+  }
   const caret = event.target.closest("[data-tree-toggle]");
   if (caret) {
     event.stopPropagation();
@@ -754,6 +786,12 @@ $("department-bars")?.addEventListener("click", event => {
     const selParent = $("parent-department");
     const selDept = $("department");
     const parent = button.dataset.parent;
+    const chKey = `${parent}|||${name}`;
+    if (adminOpenDepts.has(chKey)) {
+      adminOpenDepts.delete(chKey);
+    } else {
+      adminOpenDepts.add(chKey);
+    }
     if (selDept.value === name) {
       selDept.value = "all";
     } else {
@@ -878,6 +916,7 @@ $("lookup-form").addEventListener("submit", event => {
 let lookupDeptMode = "tree";
 let lookupShowAllDepts = false;
 const lookupOpenTree = new Set();
+const lookupOpenDepts = new Set();
 
 function renderLookupDepts() {
   const container = $("lookup-dept-bars");
@@ -889,7 +928,7 @@ function renderLookupDepts() {
   const list = roster.filter(person =>
     (lookupDeptMode !== "sub" || (matchesParent(person, parentFilter) && matchesDept(person, deptFilter)))
   );
-  renderDeptPanel(container, $("lookup-toggle-depts"), list, lookupDeptMode, sortMode, lookupOpenTree, parentFilter, deptFilter, lookupShowAllDepts);
+  renderDeptPanel(container, $("lookup-toggle-depts"), list, lookupDeptMode, sortMode, lookupOpenTree, lookupOpenDepts, parentFilter, deptFilter, lookupShowAllDepts);
 }
 
 function setLookupDeptTab(mode) {
@@ -911,6 +950,20 @@ $("lookup-toggle-depts")?.addEventListener("click", () => {
   renderLookupDepts();
 });
 $("lookup-dept-bars")?.addEventListener("click", event => {
+  const memberBtn = event.target.closest("[data-member-id]");
+  if (memberBtn) {
+    const p = people.get(memberBtn.dataset.memberId);
+    if (p) {
+      $("lookup-query").value = p.id;
+      $("lookup-parent-department").value = p.parentDept;
+      updateDeptSelects("lookup-parent-department", "lookup-department");
+      $("lookup-department").value = p.department;
+      $("lookup-message").textContent = "조회 결과 1명";
+      $("lookup-results").innerHTML = personDetail(p);
+      $("lookup-results").scrollIntoView({behavior: "smooth", block: "nearest"});
+    }
+    return;
+  }
   const caret = event.target.closest("[data-tree-toggle]");
   if (caret) {
     event.stopPropagation();
@@ -933,6 +986,12 @@ $("lookup-dept-bars")?.addEventListener("click", event => {
     const selParent = $("lookup-parent-department");
     const selDept = $("lookup-department");
     const parent = button.dataset.parent;
+    const chKey = `${parent}|||${name}`;
+    if (lookupOpenDepts.has(chKey)) {
+      lookupOpenDepts.delete(chKey);
+    } else {
+      lookupOpenDepts.add(chKey);
+    }
     if (selDept.value === name) {
       selDept.value = "all";
     } else {
