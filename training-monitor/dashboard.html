@@ -240,10 +240,12 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
     <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-expanded="false" aria-controls="rail-nav">☰ 메뉴</button>
     </div>
     <nav class="nav" id="rail-nav" aria-label="주 메뉴">
+      <!-- ADMIN_NAV_START -->
       <a href="#admin" id="nav-admin"><span class="nav-icon" aria-hidden="true">▦</span>관리자 대시보드</a>
       <a href="#departments" id="nav-dept"><span class="nav-icon" aria-hidden="true">▥</span>부서별 현황</a>
       <a href="#people" id="nav-people"><span class="nav-icon" aria-hidden="true">≡</span>개인별 현황</a>
       <a href="#nontargets" id="nav-nontarget"><span class="nav-icon" aria-hidden="true">⊘</span>교육 미대상자</a>
+      <!-- ADMIN_NAV_END -->
       <a href="#lookup" id="nav-lookup"><span class="nav-icon" aria-hidden="true">⌕</span>일반 조회</a>
     </nav>
     <div class="rail-foot">
@@ -260,7 +262,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
         </button>
         <p id="crumb" class="crumb">관리자 대시보드</p>
       </div>
-      <nav class="switcher" aria-label="화면 전환"><a href="#lookup" id="switch-lookup">일반 조회</a><a href="#admin" id="switch-admin">관리자</a></nav>
+      <!-- SWITCHER_START --><nav class="switcher" aria-label="화면 전환"><a href="#lookup" id="switch-lookup">일반 조회</a><a href="#admin" id="switch-admin">관리자</a></nav><!-- SWITCHER_END -->
     </header>
     <section id="guide-banner" class="panel guide-banner" aria-labelledby="guide-title">
       <div class="guide-info">
@@ -284,6 +286,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
         </div>
       </div>
     </section>
+    <!-- ADMIN_SECTION_START -->
     <section id="admin-view" aria-labelledby="admin-title">
       <header class="heading">
         <h1 id="admin-title">법정의무교육 수료현황</h1>
@@ -323,6 +326,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
         <div class="pager"><span id="results-range"></span><div><button class="btn" id="previous" type="button">이전</button><span id="pages" class="num"></span><button class="btn" id="next" type="button">다음</button></div></div>
       </section>
     </section>
+    <!-- ADMIN_SECTION_END -->
     <section class="lookup-layout" id="lookup-view" aria-labelledby="lookup-title" hidden>
       <header class="heading"><h1 id="lookup-title">개인 수료 조회</h1><p>사번 또는 이름을 입력하세요. 상위부서나 소속부서를 선택해 검색 범위를 좁힐 수 있습니다.</p></header>
       <section class="panel" aria-label="교육 수료 검색">
@@ -336,6 +340,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
       </section>
       <div id="lookup-results" class="lookup-results"></div>
     </section>
+    <!-- NONTARGET_SECTION_START -->
     <section id="nontarget-view" aria-labelledby="nontarget-title" hidden>
       <header class="heading">
         <h1 id="nontarget-title">교육 미대상자 현황 (인사원장 대조)</h1>
@@ -357,7 +362,9 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
         <div class="pager"><span id="nt-results-range"></span><div><button class="btn" id="nt-previous" type="button">이전</button><span id="nt-pages" class="num"></span><button class="btn" id="nt-next" type="button">다음</button></div></div>
       </section>
     </section>
+    <!-- NONTARGET_SECTION_END -->
   </main>
+  <!-- DETAIL_ASIDE_START -->
   <aside class="detail" id="detail" aria-labelledby="detail-title">
     <div class="detail-header">
       <h2 id="detail-title">개인별 진도율 빠른 조회</h2>
@@ -373,6 +380,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
     <div id="detail-quick-list" class="detail-quick-list" hidden></div>
     <div id="detail-content" aria-live="polite"></div>
   </aside>
+  <!-- DETAIL_ASIDE_END -->
 </div>
 <script type="application/json" id="report-data"><!-- REPORT_DATA --></script>
 <script>
@@ -447,14 +455,16 @@ function updateDeptSelects(parentSelectId, deptSelectId) {
   }
 }
 
-$("parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
+if ($("parent-department")) {
+  $("parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
+  updateDeptSelects("parent-department", "department");
+}
 $("lookup-parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
-updateDeptSelects("parent-department", "department");
 updateDeptSelects("lookup-parent-department", "lookup-department");
 
 const snapText = snapshot ? `엑셀 추출 기준 ${snapshot}` : "엑셀 추출 기준";
 const masterDateText = empMasterDate ? ` · 인사원장(${empMasterDate}) 100% 매칭 완료` : "";
-$("snapshot").textContent = snapText + masterDateText;
+if ($("snapshot")) $("snapshot").textContent = snapText + masterDateText;
 
 const pageSize = 10;
 let page = 1;
@@ -632,7 +642,7 @@ function applyFilters() {
   showDetail(selected);
 }
 
-$("metrics").addEventListener("click", event => {
+$("metrics")?.addEventListener("click", event => {
   const btn = event.target.closest("button[data-status]");
   if (!btn) return;
   const targetStatus = btn.dataset.status;
@@ -647,16 +657,16 @@ $("metrics").addEventListener("click", event => {
     $("people").scrollIntoView({behavior: "smooth", block: "start"});
   }
 });
-$("parent-department").addEventListener("change", () => {
+$("parent-department")?.addEventListener("change", () => {
   updateDeptSelects("parent-department", "department");
   applyFilters();
 });
 $("lookup-parent-department").addEventListener("change", () => {
   updateDeptSelects("lookup-parent-department", "lookup-department");
 });
-$("admin-filters").addEventListener("input", applyFilters);
-$("admin-filters").addEventListener("submit", event => event.preventDefault());
-$("admin-filters").addEventListener("reset", () => {
+$("admin-filters")?.addEventListener("input", applyFilters);
+$("admin-filters")?.addEventListener("submit", event => event.preventDefault());
+$("admin-filters")?.addEventListener("reset", () => {
   setTimeout(() => {
     $("parent-department").value = "all";
     updateDeptSelects("parent-department", "department");
@@ -664,7 +674,7 @@ $("admin-filters").addEventListener("reset", () => {
   }, 0);
 });
 
-$("tab-parent-dept").addEventListener("click", () => {
+$("tab-parent-dept")?.addEventListener("click", () => {
   deptViewMode = "parent";
   $("tab-parent-dept").classList.add("active");
   $("tab-parent-dept").setAttribute("aria-pressed", "true");
@@ -672,7 +682,7 @@ $("tab-parent-dept").addEventListener("click", () => {
   $("tab-sub-dept").setAttribute("aria-pressed", "false");
   renderDepartments(filtered);
 });
-$("tab-sub-dept").addEventListener("click", () => {
+$("tab-sub-dept")?.addEventListener("click", () => {
   deptViewMode = "sub";
   $("tab-sub-dept").classList.add("active");
   $("tab-sub-dept").setAttribute("aria-pressed", "true");
@@ -681,12 +691,12 @@ $("tab-sub-dept").addEventListener("click", () => {
   renderDepartments(filtered);
 });
 
-$("toggle-departments").addEventListener("click", () => {
+$("toggle-departments")?.addEventListener("click", () => {
   showAllDepartments = !showAllDepartments;
   renderDepartments(filtered);
 });
 
-$("department-bars").addEventListener("click", event => {
+$("department-bars")?.addEventListener("click", event => {
   const button = event.target.closest("button[data-name]");
   if (!button) return;
   const isParent = button.dataset.isParent === "true";
@@ -710,9 +720,9 @@ $("department-bars").addEventListener("click", event => {
   applyFilters();
 });
 
-$("previous").addEventListener("click", () => { page -= 1; renderTable(); });
-$("next").addEventListener("click", () => { page += 1; renderTable(); });
-$("table-body").addEventListener("click", event => {
+$("previous")?.addEventListener("click", () => { page -= 1; renderTable(); });
+$("next")?.addEventListener("click", () => { page += 1; renderTable(); });
+$("table-body")?.addEventListener("click", event => {
   const button = event.target.closest("button[data-id]");
   if (!button) return;
   const previous = $("table-body").querySelector('[aria-pressed="true"]');
@@ -778,12 +788,12 @@ function runSidebarSearch() {
   `).join("");
 }
 
-$("detail-query").addEventListener("input", runSidebarSearch);
-$("detail-search-form").addEventListener("submit", event => {
+$("detail-query")?.addEventListener("input", runSidebarSearch);
+$("detail-search-form")?.addEventListener("submit", event => {
   event.preventDefault();
   runSidebarSearch();
 });
-$("detail-quick-list").addEventListener("click", event => {
+$("detail-quick-list")?.addEventListener("click", event => {
   const btn = event.target.closest("button[data-id]");
   if (!btn) return;
   for (const el of $("detail-quick-list").querySelectorAll(".quick-item")) {
@@ -820,107 +830,110 @@ $("lookup-form").addEventListener("submit", event => {
 });
 
 // Non-targets view logic
-const ntParents = Array.from(new Set(nonTargets.map(p => p.parentDept)))
-  .sort((a, b) => collator.compare(a, b));
-$("nt-parent-department").innerHTML = buildOptions(ntParents, "전체 상위부서");
+if ($("nontarget-view")) {
+  const ntParents = Array.from(new Set(nonTargets.map(p => p.parentDept)))
+    .sort((a, b) => collator.compare(a, b));
+  $("nt-parent-department").innerHTML = buildOptions(ntParents, "전체 상위부서");
 
-let ntPage = 1;
-let ntFiltered = [];
+  var ntPage = 1;
+  var ntFiltered = [];
 
-function ntCatBadge(cat) {
-  const cls = cat === "일반 재직(미등록)" ? "check" :
-    cat === "겸직" ? "ship" :
-    (cat === "휴직" || cat === "퇴직") ? "leave" : "exec";
-  return `<span class="nt-cat ${cls}">${esc(cat)}</span>`;
+  function ntCatBadge(cat) {
+    const cls = cat === "일반 재직(미등록)" ? "check" :
+      cat === "겸직" ? "ship" :
+      (cat === "휴직" || cat === "퇴직") ? "leave" : "exec";
+    return `<span class="nt-cat ${cls}">${esc(cat)}</span>`;
+  }
+
+  function renderNonTargetMetrics() {
+    const curCat = $("nt-category").value;
+    const totalNt = nonTargets.length;
+    const dualCount = nonTargets.filter(p => p.category === "겸직").length;
+    const leaveCount = nonTargets.filter(p => p.category === "휴직").length;
+
+    const cards = [
+      ["전체 미대상자", `${count(totalNt)}명`, "클릭하여 전체 보기", "", "all"],
+      ["겸직", `${count(dualCount)}명`, "겸직 대상자", "attention", "겸직"],
+      ["휴직", `${count(leaveCount)}명`, "휴직 유예 대상", "primary", "휴직"]
+    ];
+    $("nt-metrics").innerHTML = cards.map(([label, val, cap, style, catVal]) => {
+      if (catVal) {
+        const pressed = catVal !== "all" && curCat === catVal;
+        return `<button type="button" class="tile tile-btn ${style}" data-nt-cat="${esc(catVal)}" aria-pressed="${pressed}"><p>${label}</p><strong class="num">${val}</strong><small>${cap}</small></button>`;
+      }
+      return `<article class="tile ${style}"><p>${label}</p><strong class="num">${val}</strong><small>${cap}</small></article>`;
+    }).join("");
+  }
+
+  function renderNonTargetTable() {
+    const pageCount = Math.max(1, Math.ceil(ntFiltered.length / pageSize));
+    ntPage = Math.max(1, Math.min(ntPage, pageCount));
+    const start = (ntPage - 1) * pageSize;
+    const list = ntFiltered.slice(start, start + pageSize);
+    $("nt-table-body").innerHTML = list.length ? list.map(p => `
+      <tr>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td><span class="pos-badge">${esc(p.position || "—")}</span></td>
+        <td class="num">${esc(p.id)}</td>
+        <td>${esc(p.parentDept)}</td>
+        <td>${esc(p.department)}</td>
+        <td>${esc(p.employmentType || "—")}</td>
+        <td><span class="emp-status-badge">${esc(p.employmentStatus || "—")}</span></td>
+        <td>${ntCatBadge(p.category)}</td>
+      </tr>
+    `).join("") : '<tr><td colspan="8" class="empty">조건에 맞는 미대상자가 없습니다.</td></tr>';
+    $("nt-match-count").textContent = `검색 결과 ${count(ntFiltered.length)}명`;
+    $("nt-results-range").textContent = list.length ? `${count(start + 1)}–${count(start + list.length)} / ${count(ntFiltered.length)}명` : "0명";
+    $("nt-pages").textContent = `${ntPage} / ${pageCount}`;
+    $("nt-previous").disabled = ntPage === 1;
+    $("nt-next").disabled = ntPage === pageCount;
+  }
+
+  window.applyNonTargetFilters = function applyNonTargetFilters() {
+    const cat = $("nt-category").value;
+    const parent = $("nt-parent-department").value;
+    const query = normalized($("nt-query").value);
+    ntFiltered = nonTargets.filter(p =>
+      (cat === "all" || p.category === cat) &&
+      (parent === "all" || p.parentDept === parent) &&
+      (!query || normalized(p.id).includes(query) || normalized(p.name).includes(query))
+    ).sort((a, b) =>
+      Number(b.category === "일반 재직(미등록)") - Number(a.category === "일반 재직(미등록)") ||
+      collator.compare(a.parentDept, b.parentDept) ||
+      collator.compare(a.name, b.name)
+    );
+    ntPage = 1;
+    renderNonTargetMetrics();
+    renderNonTargetTable();
+  };
+
+  $("nt-metrics").addEventListener("click", event => {
+    const btn = event.target.closest("button[data-nt-cat]");
+    if (!btn) return;
+    const targetCat = btn.dataset.ntCat;
+    const sel = $("nt-category");
+    sel.value = targetCat === "all" ? "all" : (sel.value === targetCat ? "all" : targetCat);
+    applyNonTargetFilters();
+  });
+  $("nt-filters").addEventListener("input", applyNonTargetFilters);
+  $("nt-filters").addEventListener("submit", event => event.preventDefault());
+  $("nt-filters").addEventListener("reset", () => setTimeout(applyNonTargetFilters, 0));
+  $("nt-previous").addEventListener("click", () => { ntPage -= 1; renderNonTargetTable(); });
+  $("nt-next").addEventListener("click", () => { ntPage += 1; renderNonTargetTable(); });
 }
-
-function renderNonTargetMetrics() {
-  const curCat = $("nt-category").value;
-  const totalNt = nonTargets.length;
-  const dualCount = nonTargets.filter(p => p.category === "겸직").length;
-  const leaveCount = nonTargets.filter(p => p.category === "휴직").length;
-
-  const cards = [
-    ["전체 미대상자", `${count(totalNt)}명`, "클릭하여 전체 보기", "", "all"],
-    ["겸직", `${count(dualCount)}명`, "겸직 대상자", "attention", "겸직"],
-    ["휴직", `${count(leaveCount)}명`, "휴직 유예 대상", "primary", "휴직"]
-  ];
-  $("nt-metrics").innerHTML = cards.map(([label, val, cap, style, catVal]) => {
-    if (catVal) {
-      const pressed = catVal !== "all" && curCat === catVal;
-      return `<button type="button" class="tile tile-btn ${style}" data-nt-cat="${esc(catVal)}" aria-pressed="${pressed}"><p>${label}</p><strong class="num">${val}</strong><small>${cap}</small></button>`;
-    }
-    return `<article class="tile ${style}"><p>${label}</p><strong class="num">${val}</strong><small>${cap}</small></article>`;
-  }).join("");
-}
-
-function renderNonTargetTable() {
-  const pageCount = Math.max(1, Math.ceil(ntFiltered.length / pageSize));
-  ntPage = Math.max(1, Math.min(ntPage, pageCount));
-  const start = (ntPage - 1) * pageSize;
-  const list = ntFiltered.slice(start, start + pageSize);
-  $("nt-table-body").innerHTML = list.length ? list.map(p => `
-    <tr>
-      <td><strong>${esc(p.name)}</strong></td>
-      <td><span class="pos-badge">${esc(p.position || "—")}</span></td>
-      <td class="num">${esc(p.id)}</td>
-      <td>${esc(p.parentDept)}</td>
-      <td>${esc(p.department)}</td>
-      <td>${esc(p.employmentType || "—")}</td>
-      <td><span class="emp-status-badge">${esc(p.employmentStatus || "—")}</span></td>
-      <td>${ntCatBadge(p.category)}</td>
-    </tr>
-  `).join("") : '<tr><td colspan="8" class="empty">조건에 맞는 미대상자가 없습니다.</td></tr>';
-  $("nt-match-count").textContent = `검색 결과 ${count(ntFiltered.length)}명`;
-  $("nt-results-range").textContent = list.length ? `${count(start + 1)}–${count(start + list.length)} / ${count(ntFiltered.length)}명` : "0명";
-  $("nt-pages").textContent = `${ntPage} / ${pageCount}`;
-  $("nt-previous").disabled = ntPage === 1;
-  $("nt-next").disabled = ntPage === pageCount;
-}
-
-function applyNonTargetFilters() {
-  const cat = $("nt-category").value;
-  const parent = $("nt-parent-department").value;
-  const query = normalized($("nt-query").value);
-  ntFiltered = nonTargets.filter(p =>
-    (cat === "all" || p.category === cat) &&
-    (parent === "all" || p.parentDept === parent) &&
-    (!query || normalized(p.id).includes(query) || normalized(p.name).includes(query))
-  ).sort((a, b) =>
-    Number(b.category === "일반 재직(미등록)") - Number(a.category === "일반 재직(미등록)") ||
-    collator.compare(a.parentDept, b.parentDept) ||
-    collator.compare(a.name, b.name)
-  );
-  ntPage = 1;
-  renderNonTargetMetrics();
-  renderNonTargetTable();
-}
-
-$("nt-metrics").addEventListener("click", event => {
-  const btn = event.target.closest("button[data-nt-cat]");
-  if (!btn) return;
-  const targetCat = btn.dataset.ntCat;
-  const sel = $("nt-category");
-  sel.value = targetCat === "all" ? "all" : (sel.value === targetCat ? "all" : targetCat);
-  applyNonTargetFilters();
-});
-$("nt-filters").addEventListener("input", applyNonTargetFilters);
-$("nt-filters").addEventListener("submit", event => event.preventDefault());
-$("nt-filters").addEventListener("reset", () => setTimeout(applyNonTargetFilters, 0));
-$("nt-previous").addEventListener("click", () => { ntPage -= 1; renderNonTargetTable(); });
-$("nt-next").addEventListener("click", () => { ntPage += 1; renderNonTargetTable(); });
 
 function route() {
+  const lookupOnly = document.body.dataset.lookupOnly === "true" || !$("admin-view");
   const defaultView = document.body.dataset.defaultView || "admin";
-  const view = location.hash.slice(1) || defaultView;
+  const view = lookupOnly ? "lookup" : (location.hash.slice(1) || defaultView);
   const lookup = view === "lookup";
-  const nontarget = view === "nontargets";
+  const nontarget = !lookupOnly && view === "nontargets";
   document.body.classList.toggle("lookup-mode", lookup);
   document.body.classList.toggle("nontarget-mode", nontarget);
-  $("admin-view").hidden = lookup || nontarget;
+  if ($("admin-view")) $("admin-view").hidden = lookup || nontarget;
   $("lookup-view").hidden = !lookup;
-  $("nontarget-view").hidden = !nontarget;
-  $("detail").hidden = lookup || nontarget;
+  if ($("nontarget-view")) $("nontarget-view").hidden = !nontarget;
+  if ($("detail")) $("detail").hidden = lookup || nontarget;
   $("crumb").textContent = lookup ? "일반 조회" : nontarget ? "교육 미대상자" : "관리자 대시보드";
   for (const id of ["nav-admin", "nav-dept", "nav-people", "nav-nontarget", "nav-lookup", "switch-admin", "switch-lookup"]) {
     $(id)?.removeAttribute("aria-current");
@@ -929,8 +942,8 @@ function route() {
   const active = routes.get(view) || "nav-admin";
   $(active)?.setAttribute("aria-current", "page");
   $(lookup ? "switch-lookup" : "switch-admin")?.setAttribute("aria-current", "page");
-  if (view === "departments" || view === "people") {
-    $(view).scrollIntoView({block:"start"});
+  if (!lookupOnly && (view === "departments" || view === "people")) {
+    $(view)?.scrollIntoView({block:"start"});
   } else {
     window.scrollTo(0, 0);
   }
@@ -956,8 +969,8 @@ $("rail-nav")?.addEventListener("click", () => {
   $("mobile-menu-btn")?.setAttribute("aria-expanded", "false");
 });
 window.addEventListener("hashchange", route);
-applyFilters();
-applyNonTargetFilters();
+if ($("admin-view")) applyFilters();
+if ($("nontarget-view")) applyNonTargetFilters();
 route();
 </script>
 </body>

@@ -258,8 +258,26 @@ def main():
     compiled = template.replace("<!-- REPORT_DATA -->", data, 1)
     output.write_text(compiled, encoding="utf-8")
 
+    # Build lookup-only index.html for employee distribution (no admin views or nonTargets)
+    lookup_payload = {
+        "snapshot": payload["snapshot"],
+        "empMasterDate": emp_master_date,
+        "records": records,
+    }
+    lookup_data = json.dumps(lookup_payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    lookup_html = template
+    for start_tag, end_tag in [
+        ("<!-- ADMIN_NAV_START -->", "<!-- ADMIN_NAV_END -->"),
+        ("<!-- SWITCHER_START -->", "<!-- SWITCHER_END -->"),
+        ("<!-- ADMIN_SECTION_START -->", "<!-- ADMIN_SECTION_END -->"),
+        ("<!-- NONTARGET_SECTION_START -->", "<!-- NONTARGET_SECTION_END -->"),
+        ("<!-- DETAIL_ASIDE_START -->", "<!-- DETAIL_ASIDE_END -->"),
+    ]:
+        lookup_html = re.sub(rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}", "", lookup_html, flags=re.DOTALL)
+    lookup_html = lookup_html.replace("<body>", '<body data-lookup-only="true">', 1)
+    lookup_html = lookup_html.replace("<!-- REPORT_DATA -->", lookup_data, 1)
     index_output = folder.parent / "index.html"
-    index_output.write_text(compiled.replace("<body>", '<body data-default-view="lookup">', 1), encoding="utf-8")
+    index_output.write_text(lookup_html, encoding="utf-8")
     
     statuses = Counter(row["status"] for row in records)
     print(f"LMS 교육 기록: {len(records):,}건 · 사번 {len({row['id'] for row in records}):,}개 · 상태 {dict(statuses)}")
