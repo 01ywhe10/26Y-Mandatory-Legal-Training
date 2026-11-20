@@ -984,7 +984,6 @@ function renderDailyTrend(list, animateMotion = false) {
   }
 }
 
-$("trend-play")?.addEventListener("click", playTrendMotion);
 $("trend-svg")?.addEventListener("mousemove", event => {
   const hit = event.target.closest(".trend-hit");
   if (!hit) return;

@@ -361,7 +361,6 @@ body[data-lookup-only="true"] .switcher,body[data-lookup-only="true"] #nav-admin
           </div>
           <div class="panel-actions">
             <div class="trend-live-pill num" id="trend-live-pill">집계 중...</div>
-            <button type="button" class="btn btn-sm" id="trend-play">▶ 모션 재생</button>
           </div>
         </div>
         <div class="trend-svg-wrap" id="trend-chart-wrap">
@@ -1089,7 +1088,6 @@ function renderDailyTrend(list, animateMotion = false) {
   }
 }
 
-$("trend-play")?.addEventListener("click", playTrendMotion);
 $("trend-svg")?.addEventListener("mousemove", event => {
   const hit = event.target.closest(".trend-hit");
   if (!hit) return;
