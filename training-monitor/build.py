@@ -255,7 +255,11 @@ def main():
         print(f"안내 동영상 인라인 임베드 완료 ({video_path.name}: {video_path.stat().st_size / 1024 / 1024:.2f} MB)")
 
     output = folder.parent / "training-monitor.html"
-    output.write_text(template.replace("<!-- REPORT_DATA -->", data, 1), encoding="utf-8")
+    compiled = template.replace("<!-- REPORT_DATA -->", data, 1)
+    output.write_text(compiled, encoding="utf-8")
+
+    index_output = folder.parent / "index.html"
+    index_output.write_text(compiled.replace("<body>", '<body data-default-view="lookup">', 1), encoding="utf-8")
     
     statuses = Counter(row["status"] for row in records)
     print(f"LMS 교육 기록: {len(records):,}건 · 사번 {len({row['id'] for row in records}):,}개 · 상태 {dict(statuses)}")
