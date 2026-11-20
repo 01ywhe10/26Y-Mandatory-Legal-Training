@@ -277,6 +277,7 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
     <nav class="nav" id="rail-nav" aria-label="주 메뉴">
       
       <a href="#lookup" id="nav-lookup"><span class="nav-icon" aria-hidden="true">⌕</span>일반 조회</a>
+      
     </nav>
     <div class="rail-foot">
       <strong>삼표시멘트 HRD</strong>
@@ -1161,10 +1162,10 @@ function route() {
   if ($("nontarget-view")) $("nontarget-view").hidden = !nontarget;
   if ($("detail")) $("detail").hidden = lookup || nontarget;
   $("crumb").textContent = lookup ? "일반 조회" : nontarget ? "교육 미대상자" : "관리자 대시보드";
-  for (const id of ["nav-admin", "nav-dept", "nav-people", "nav-nontarget", "nav-lookup", "switch-admin", "switch-lookup"]) {
+  for (const id of ["nav-admin", "nav-nontarget", "nav-lookup", "switch-admin", "switch-lookup"]) {
     $(id)?.removeAttribute("aria-current");
   }
-  const routes = new Map([["lookup", "nav-lookup"], ["nontargets", "nav-nontarget"], ["departments", "nav-dept"], ["people", "nav-people"]]);
+  const routes = new Map([["lookup", "nav-lookup"], ["nontargets", "nav-nontarget"]]);
   const active = routes.get(view) || "nav-admin";
   $(active)?.setAttribute("aria-current", "page");
   $(lookup ? "switch-lookup" : "switch-admin")?.setAttribute("aria-current", "page");

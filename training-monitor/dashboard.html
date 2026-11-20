@@ -275,13 +275,9 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
     <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-expanded="false" aria-controls="rail-nav">☰ 메뉴</button>
     </div>
     <nav class="nav" id="rail-nav" aria-label="주 메뉴">
-      <!-- ADMIN_NAV_START -->
-      <a href="#admin" id="nav-admin"><span class="nav-icon" aria-hidden="true">▦</span>관리자 대시보드</a>
-      <a href="#departments" id="nav-dept"><span class="nav-icon" aria-hidden="true">▥</span>부서별 현황</a>
-      <a href="#people" id="nav-people"><span class="nav-icon" aria-hidden="true">≡</span>개인별 현황</a>
-      <a href="#nontargets" id="nav-nontarget"><span class="nav-icon" aria-hidden="true">⊘</span>교육 미대상자</a>
-      <!-- ADMIN_NAV_END -->
+      <!-- ADMIN_NAV_START --><a href="#admin" id="nav-admin"><span class="nav-icon" aria-hidden="true">▦</span>관리자 대시보드</a><!-- ADMIN_NAV_END -->
       <a href="#lookup" id="nav-lookup"><span class="nav-icon" aria-hidden="true">⌕</span>일반 조회</a>
+      <!-- ADMIN_NAV_START --><a href="#nontargets" id="nav-nontarget"><span class="nav-icon" aria-hidden="true">⊘</span>교육 미대상자</a><!-- ADMIN_NAV_END -->
     </nav>
     <div class="rail-foot">
       <strong>삼표시멘트 HRD</strong>
@@ -1250,10 +1246,10 @@ function route() {
   if ($("nontarget-view")) $("nontarget-view").hidden = !nontarget;
   if ($("detail")) $("detail").hidden = lookup || nontarget;
   $("crumb").textContent = lookup ? "일반 조회" : nontarget ? "교육 미대상자" : "관리자 대시보드";
-  for (const id of ["nav-admin", "nav-dept", "nav-people", "nav-nontarget", "nav-lookup", "switch-admin", "switch-lookup"]) {
+  for (const id of ["nav-admin", "nav-nontarget", "nav-lookup", "switch-admin", "switch-lookup"]) {
     $(id)?.removeAttribute("aria-current");
   }
-  const routes = new Map([["lookup", "nav-lookup"], ["nontargets", "nav-nontarget"], ["departments", "nav-dept"], ["people", "nav-people"]]);
+  const routes = new Map([["lookup", "nav-lookup"], ["nontargets", "nav-nontarget"]]);
   const active = routes.get(view) || "nav-admin";
   $(active)?.setAttribute("aria-current", "page");
   $(lookup ? "switch-lookup" : "switch-admin")?.setAttribute("aria-current", "page");
