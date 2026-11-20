@@ -514,7 +514,8 @@ function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet
       name, ...summarize(group), items: group
     })), sortMode);
 
-    if (openSet.size === 0 && parentGroups.length) {
+    if (!openSet._init && parentGroups.length) {
+      openSet._init = true;
       for (const pg of parentGroups.slice(0, 2)) openSet.add(pg.name);
     }
 
@@ -537,7 +538,7 @@ function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet
         name, parent: pg.name, members: group, ...summarize(group)
       })), sortMode);
 
-      const isOpen = openSet.has(pg.name) || currentParent === pg.name;
+      const isOpen = openSet.has(pg.name);
       const parentPressed = currentParent === pg.name && currentDept === "all";
 
       const childrenHTML = children.map(ch => {
