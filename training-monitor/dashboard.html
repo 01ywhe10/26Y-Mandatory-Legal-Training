@@ -804,7 +804,12 @@ $("metrics")?.addEventListener("click", event => {
   const targetStatus = btn.dataset.status;
   const statusSelect = $("status");
   if (targetStatus === "all") {
+    $("parent-department").value = "all";
+    updateDeptSelects("parent-department", "department");
     statusSelect.value = "all";
+    $("employee-id").value = "";
+    $("employee-name").value = "";
+    adminOpenDepts.clear();
   } else {
     statusSelect.value = statusSelect.value === targetStatus ? "all" : targetStatus;
   }
