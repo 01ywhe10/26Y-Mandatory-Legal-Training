@@ -78,6 +78,14 @@ body.rail-collapsed .rail{display:none}
 .switcher{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#e3ecf4;font-size:.855rem;white-space:nowrap}
 .switcher a{padding:6px 12px;border-radius:7px;color:var(--muted);transition:all .15s ease}
 .switcher a[aria-current="page"]{background:#fff;color:var(--ci-blue-dark);font-weight:750;box-shadow:0 1px 3px rgba(13,35,62,0.12)}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.btn-upload{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--ci-blue);border-radius:10px;background:var(--ci-blue);color:#fff;font-size:.855rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s ease;box-shadow:0 2px 6px rgba(0,113,188,0.22)}
+.btn-upload:hover{background:var(--ci-blue-dark);border-color:var(--ci-blue-dark);transform:translateY(-1px)}
+.btn-upload.loading{opacity:.7;pointer-events:none}
+.upload-toast{margin:-12px 0 18px;padding:10px 14px;border-radius:10px;border:1px solid var(--ok-line);background:var(--ok-bg);color:var(--ok);font-size:.875rem;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.upload-toast.error{border-color:var(--warn-line);background:var(--warn-bg);color:var(--warn)}
+.upload-toast button{border:0;background:transparent;color:inherit;font-size:1rem;cursor:pointer;padding:2px 6px;line-height:1}
+@media (max-width:600px){.top{flex-wrap:wrap}.top-right{width:100%;justify-content:space-between}.btn-upload{padding:6px 10px;font-size:.8rem}}
 .heading{margin-bottom:20px}
 .heading-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;background:#e5f4fa;border:1px solid #bfe3f7;border-radius:6px;font-size:.78rem;font-weight:700;color:#0271a3;margin-top:8px}
 .heading-badge-link{background:#fff8eb;border-color:#fde68a;color:#b45309;margin-left:6px;transition:all .15s}
@@ -289,8 +297,12 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
         </button>
         <p id="crumb" class="crumb">관리자 대시보드</p>
       </div>
-      <!-- SWITCHER_START --><nav class="switcher" aria-label="화면 전환"><a href="#lookup" id="switch-lookup">일반 조회</a><a href="#admin" id="switch-admin">관리자</a></nav><!-- SWITCHER_END -->
+      <div class="top-right">
+        <!-- SWITCHER_START --><nav class="switcher" aria-label="화면 전환"><a href="#lookup" id="switch-lookup">일반 조회</a><a href="#admin" id="switch-admin">관리자</a></nav><!-- SWITCHER_END -->
+        <!-- ADMIN_UPLOAD_START --><label class="btn-upload" id="upload-btn" for="lms-upload" title="새 LMS 교육 수료현황 엑셀(.xlsx) 파일을 업로드하여 즉시 반영합니다"><span aria-hidden="true">📤</span><span>교육진행율 업로드</span><input type="file" id="lms-upload" accept=".xlsx,.xls,.html,.htm" hidden></label><!-- ADMIN_UPLOAD_END -->
+      </div>
     </header>
+    <!-- ADMIN_UPLOAD_START --><div id="upload-toast" class="upload-toast" hidden role="status" aria-live="polite"><span id="upload-toast-msg"></span><button type="button" id="upload-toast-close" aria-label="알림 닫기">✕</button></div><!-- ADMIN_UPLOAD_END -->
     <section id="guide-banner" class="panel guide-banner" aria-labelledby="guide-title">
       <div class="guide-info">
         <div class="guide-head">
@@ -440,7 +452,13 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
 <script type="application/json" id="report-data"><!-- REPORT_DATA --></script>
 <script>
 "use strict";
-const {snapshot, empMasterDate, companyStats, records, nonTargets = []} = JSON.parse(document.getElementById("report-data").textContent);
+const reportPayload = JSON.parse(document.getElementById("report-data").textContent);
+let snapshot = reportPayload.snapshot || "";
+let empMasterDate = reportPayload.empMasterDate || "";
+let companyStats = reportPayload.companyStats || null;
+let records = reportPayload.records || [];
+let nonTargets = reportPayload.nonTargets || [];
+const empMaster = reportPayload.empMaster || {};
 const $ = id => document.getElementById(id);
 const fmt = new Intl.NumberFormat("ko-KR", {maximumFractionDigits: 1});
 const count = value => fmt.format(value);
@@ -461,42 +479,10 @@ const collator = new Intl.Collator("ko-KR", {numeric: true});
 const isComplete = record => record.status === "수료";
 
 const people = new Map();
-for (const record of records) {
-  if (!people.has(record.id)) {
-    people.set(record.id, {
-      id: record.id,
-      name: record.name,
-      parentDept: record.parentDept || "(상위조직 미지정)",
-      department: record.department || "(부서 미지정)",
-      position: record.position || "",
-      jobRole: record.jobRole || "",
-      workplace: record.workplace || "",
-      employmentStatus: record.employmentStatus || "재직",
-      records: []
-    });
-  }
-  people.get(record.id).records.push(record);
-}
-const roster = Array.from(people.values());
-for (const person of roster) {
-  person.progress = person.records.reduce((sum, record) => sum + record.progress, 0) / person.records.length;
-  person.done = person.records.every(isComplete);
-  person.status = person.done ? "수료" : person.records.length === 1 ? person.records[0].status : "미수료";
-}
-roster.sort((a, b) => Number(a.done) - Number(b.done) || a.progress - b.progress ||
-  collator.compare(a.name, b.name) || collator.compare(a.id, b.id));
-
-const parentDepts = Array.from(new Set(roster.map(p => p.parentDept)))
-  .sort((a, b) => Number(a === "(상위조직 미지정)") - Number(b === "(상위조직 미지정)") || collator.compare(a, b));
-
-const allDepts = Array.from(new Set(roster.map(p => p.department)))
-  .sort((a, b) => Number(a === "(부서 미지정)") - Number(b === "(부서 미지정)") || collator.compare(a, b));
-
-const parentToDepts = new Map();
-for (const p of roster) {
-  if (!parentToDepts.has(p.parentDept)) parentToDepts.set(p.parentDept, new Set());
-  parentToDepts.get(p.parentDept).add(p.department);
-}
+let roster = [];
+let parentDepts = [];
+let allDepts = [];
+let parentToDepts = new Map();
 
 function buildOptions(list, defaultText) {
   return `<option value="all">${esc(defaultText)}</option>` + list.map(item =>
@@ -516,16 +502,64 @@ function updateDeptSelects(parentSelectId, deptSelectId) {
   }
 }
 
-if ($("parent-department")) {
-  $("parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
-  updateDeptSelects("parent-department", "department");
-}
-$("lookup-parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
-updateDeptSelects("lookup-parent-department", "lookup-department");
+function hydrateData(nextPayload) {
+  snapshot = nextPayload.snapshot || "";
+  if ("empMasterDate" in nextPayload) empMasterDate = nextPayload.empMasterDate || "";
+  if ("companyStats" in nextPayload) companyStats = nextPayload.companyStats || null;
+  records = nextPayload.records || [];
+  if ("nonTargets" in nextPayload) nonTargets = nextPayload.nonTargets || [];
 
-const snapText = snapshot ? `엑셀 추출 기준 ${snapshot}` : "엑셀 추출 기준";
-const masterDateText = empMasterDate ? ` · 인사원장(${empMasterDate}) 100% 매칭 완료` : "";
-if ($("snapshot")) $("snapshot").textContent = snapText + masterDateText;
+  people.clear();
+  for (const record of records) {
+    if (!people.has(record.id)) {
+      people.set(record.id, {
+        id: record.id,
+        name: record.name,
+        parentDept: record.parentDept || "(상위조직 미지정)",
+        department: record.department || "(부서 미지정)",
+        position: record.position || "",
+        jobRole: record.jobRole || "",
+        workplace: record.workplace || "",
+        employmentStatus: record.employmentStatus || "재직",
+        records: []
+      });
+    }
+    people.get(record.id).records.push(record);
+  }
+  roster = Array.from(people.values());
+  for (const person of roster) {
+    person.progress = person.records.reduce((sum, record) => sum + record.progress, 0) / person.records.length;
+    person.done = person.records.every(isComplete);
+    person.status = person.done ? "수료" : person.records.length === 1 ? person.records[0].status : "미수료";
+  }
+  roster.sort((a, b) => Number(a.done) - Number(b.done) || a.progress - b.progress ||
+    collator.compare(a.name, b.name) || collator.compare(a.id, b.id));
+
+  parentDepts = Array.from(new Set(roster.map(p => p.parentDept)))
+    .sort((a, b) => Number(a === "(상위조직 미지정)") - Number(b === "(상위조직 미지정)") || collator.compare(a, b));
+
+  allDepts = Array.from(new Set(roster.map(p => p.department)))
+    .sort((a, b) => Number(a === "(부서 미지정)") - Number(b === "(부서 미지정)") || collator.compare(a, b));
+
+  parentToDepts = new Map();
+  for (const p of roster) {
+    if (!parentToDepts.has(p.parentDept)) parentToDepts.set(p.parentDept, new Set());
+    parentToDepts.get(p.parentDept).add(p.department);
+  }
+
+  if ($("parent-department")) {
+    $("parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
+    updateDeptSelects("parent-department", "department");
+  }
+  $("lookup-parent-department").innerHTML = buildOptions(parentDepts, "전체 상위부서");
+  updateDeptSelects("lookup-parent-department", "lookup-department");
+
+  const snapText = snapshot ? `엑셀 추출 기준 ${snapshot}` : "엑셀 추출 기준";
+  const masterDateText = empMasterDate ? ` · 인사원장(${empMasterDate}) 100% 매칭 완료` : "";
+  if ($("snapshot")) $("snapshot").textContent = snapText + masterDateText;
+}
+
+hydrateData(reportPayload);
 
 const pageSize = 10;
 let page = 1;
@@ -1250,6 +1284,278 @@ $("rail-nav")?.addEventListener("click", () => {
   $("mobile-menu-btn")?.setAttribute("aria-expanded", "false");
 });
 window.addEventListener("hashchange", route);
+
+const LMS_FIELDS = ["부서", "사번", "이름", "과정명", "진도율", "수료여부", "최종학습일", "수료일자", "학습기간"];
+const EXEC_POSITIONS = new Set(["회장", "수석부회장", "부회장", "사외이사", "상무", "고문(직원)"]);
+
+function showUploadToast(message, isError = false) {
+  const toast = $("upload-toast");
+  const msg = $("upload-toast-msg");
+  if (!toast || !msg) return;
+  msg.textContent = message;
+  toast.classList.toggle("error", isError);
+  toast.hidden = false;
+}
+
+$("upload-toast-close")?.addEventListener("click", () => {
+  if ($("upload-toast")) $("upload-toast").hidden = true;
+});
+
+async function unzipXlsxEntries(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65558); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("유효한 .xlsx(ZIP) 파일이 아닙니다.");
+  const cdCount = view.getUint16(eocd + 10, true);
+  let pos = view.getUint32(eocd + 16, true);
+  const decoder = new TextDecoder("utf-8");
+  const want = new Map();
+  for (let i = 0; i < cdCount; i++) {
+    if (view.getUint32(pos, true) !== 0x02014b50) break;
+    const method = view.getUint16(pos + 10, true);
+    const compSize = view.getUint32(pos + 20, true);
+    const nameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const lhOffset = view.getUint32(pos + 42, true);
+    const name = decoder.decode(bytes.subarray(pos + 46, pos + 46 + nameLen));
+    pos += 46 + nameLen + extraLen + commentLen;
+    if (name === "xl/sharedStrings.xml" || /^xl\/worksheets\/sheet\d+\.xml$/i.test(name)) {
+      const lhNameLen = view.getUint16(lhOffset + 26, true);
+      const lhExtraLen = view.getUint16(lhOffset + 28, true);
+      const dataStart = lhOffset + 30 + lhNameLen + lhExtraLen;
+      want.set(name, {method, slice: bytes.subarray(dataStart, dataStart + compSize)});
+    }
+  }
+  const result = new Map();
+  for (const [name, entry] of want.entries()) {
+    if (entry.method === 0) {
+      result.set(name, decoder.decode(entry.slice));
+    } else if (entry.method === 8) {
+      if (typeof DecompressionStream === "undefined") {
+        throw new Error("현재 브라우저에서 압축 해제를 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용해 주세요.");
+      }
+      const ds = new DecompressionStream("deflate-raw");
+      const text = await new Response(new Blob([entry.slice]).stream().pipeThrough(ds)).text();
+      result.set(name, text);
+    } else {
+      throw new Error(`지원하지 않는 압축 방식(${entry.method})입니다.`);
+    }
+  }
+  return result;
+}
+
+function parseHtmlRows(htmlText) {
+  const doc = new DOMParser().parseFromString(htmlText, "text/html");
+  return Array.from(doc.querySelectorAll("tr")).map(tr =>
+    Array.from(tr.querySelectorAll("td,th")).map(cell => cell.textContent.replace(/\s+/g, " ").trim())
+  ).filter(r => r.length > 0);
+}
+
+function parseSheetRows(entries) {
+  const sheetXml = entries.get("xl/worksheets/sheet1.xml") ||
+    Array.from(entries.entries()).find(([k]) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(k))?.[1];
+  if (!sheetXml) throw new Error("엑셀 시트(sheet1.xml)를 찾을 수 없습니다.");
+
+  const parser = new DOMParser();
+  const strings = [];
+  if (entries.has("xl/sharedStrings.xml")) {
+    const ssDoc = parser.parseFromString(entries.get("xl/sharedStrings.xml"), "application/xml");
+    for (const si of ssDoc.getElementsByTagNameNS("*", "si")) {
+      const texts = Array.from(si.getElementsByTagNameNS("*", "t")).map(t => t.textContent || "");
+      strings.push(texts.join(""));
+    }
+  }
+
+  const sheetDoc = parser.parseFromString(sheetXml, "application/xml");
+  const rows = [];
+  for (const row of sheetDoc.getElementsByTagNameNS("*", "row")) {
+    const values = new Map();
+    let maxCol = 0;
+    for (const cell of row.getElementsByTagNameNS("*", "c")) {
+      const ref = cell.getAttribute("r") || "";
+      const match = ref.match(/^[A-Z]+/);
+      if (!match) continue;
+      let col = 0;
+      for (const ch of match[0]) col = col * 26 + ch.charCodeAt(0) - 64;
+      const kind = cell.getAttribute("t") || "";
+      let val = "";
+      if (kind === "s") {
+        const vNode = cell.getElementsByTagNameNS("*", "v")[0];
+        val = strings[Number(vNode?.textContent || 0)] || "";
+      } else if (kind === "inlineStr") {
+        val = Array.from(cell.getElementsByTagNameNS("*", "t")).map(t => t.textContent || "").join("");
+      } else {
+        const vNode = cell.getElementsByTagNameNS("*", "v")[0];
+        val = vNode?.textContent || "";
+      }
+      if (val.trim()) {
+        values.set(col, val);
+        if (col > maxCol) maxCol = col;
+      }
+    }
+    if (maxCol > 0) {
+      const arr = [];
+      for (let i = 1; i <= maxCol; i++) arr.push(values.get(i) || "");
+      rows.push(arr);
+    }
+  }
+  return rows;
+}
+
+function findMasterEmployee(rawId, name) {
+  const id = String(rawId || "").trim();
+  if (empMaster[id]) return empMaster[id];
+  if (id.length >= 7 && empMaster[id.slice(-7)]) return empMaster[id.slice(-7)];
+  if (name === "차재승" && empMaster["K26010"]) return empMaster["K26010"];
+  return Object.values(empMaster).find(e => e.name === name) || null;
+}
+
+async function parseLmsFile(file) {
+  const buffer = await file.arrayBuffer();
+  const headText = new TextDecoder("utf-8").decode(new Uint8Array(buffer, 0, Math.min(256, buffer.byteLength))).trimStart().toLowerCase();
+  let rows;
+  if (headText.startsWith("<!doctype html") || headText.startsWith("<html") || headText.startsWith("<table")) {
+    rows = parseHtmlRows(new TextDecoder("utf-8").decode(buffer));
+  } else {
+    const entries = await unzipXlsxEntries(buffer);
+    rows = parseSheetRows(entries);
+    if (rows.slice(0, 10).some(r => /^(<!doctype html|<html)/i.test((r[0] || "").trim()))) {
+      rows = parseHtmlRows(rows.map(r => r.join(" ")).join("\n"));
+    }
+  }
+
+  let header = null;
+  const parsed = [];
+  for (const row of rows) {
+    const cols = row.map(cell => String(cell || "").replace(/\s+/g, ""));
+    if (LMS_FIELDS.every(f => cols.includes(f))) {
+      header = {};
+      for (const key of LMS_FIELDS) header[key] = cols.indexOf(key);
+      if (cols.includes("아이디")) header["아이디"] = cols.indexOf("아이디");
+      continue;
+    }
+    if (!header || !row.some(Boolean)) continue;
+    const val = key => {
+      const idx = header[key];
+      return idx !== undefined && idx < row.length ? String(row[idx] || "").trim() : "";
+    };
+    const status = val("수료여부");
+    const progressText = val("진도율").replace(/%/g, "").trim();
+    if (!val("사번") || !val("이름") || !status || !val("과정명")) continue;
+    const progress = Number(progressText);
+    if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
+      throw new Error(`진도율 값이 올바르지 않습니다: ${val("이름")} (${progressText})`);
+    }
+    let rawId = val("사번");
+    const name = val("이름");
+    if (val("아이디") === "sampyo-sunghun.shin") rawId = "1008821";
+    const emp = findMasterEmployee(rawId, name);
+    parsed.push({
+      id: emp ? emp.id : rawId,
+      rawId,
+      name,
+      parentDept: emp ? emp.parentDept : "",
+      department: emp ? emp.department : val("부서"),
+      position: emp ? emp.position : "",
+      jobRole: emp ? emp.jobRole : "",
+      workplace: emp ? emp.workplace : "",
+      employmentStatus: emp ? emp.employmentStatus : "재직",
+      course: val("과정명"),
+      progress,
+      status,
+      lastStudy: val("최종학습일").replace(/^-+|-+$/g, ""),
+      completed: val("수료일자").replace(/^-+|-+$/g, ""),
+      period: val("학습기간")
+    });
+  }
+  if (!parsed.length) throw new Error("교육 현황 표 또는 교육 기록을 찾을 수 없습니다.");
+
+  const lmsIds = new Set(parsed.map(r => r.id));
+  const nextNonTargets = [];
+  const nextStats = {total: 0, active: 0, leave: 0, retired: 0, excluded: companyStats ? companyStats.excluded : 0};
+  const masterList = Object.values(empMaster);
+  if (masterList.length) {
+    let baseExcluded = 0;
+    let total = 0, active = 0, leave = 0, retired = 0;
+    for (const emp of masterList) {
+      total += 1;
+      if (emp.employmentStatus === "재직") active += 1;
+      else if (emp.employmentStatus === "휴직") leave += 1;
+      else if (emp.employmentStatus === "퇴직") retired += 1;
+      if (lmsIds.has(emp.id)) continue;
+      if (emp.employmentType === "임원" || emp.employmentType === "겸직" || EXEC_POSITIONS.has(emp.position)) {
+        baseExcluded += 1;
+        total -= 1;
+        if (emp.employmentStatus === "재직") active -= 1;
+        continue;
+      }
+      const category = (emp.id === "K25008" || emp.name === "김지명") ? "겸직"
+        : emp.employmentStatus === "휴직" ? "휴직" : "일반 재직(미등록)";
+      nextNonTargets.push({
+        id: emp.id,
+        name: emp.name,
+        parentDept: emp.parentDept,
+        department: emp.department,
+        position: emp.position,
+        jobRole: emp.jobRole,
+        employmentType: emp.employmentType,
+        employmentStatus: emp.employmentStatus,
+        workplace: emp.workplace,
+        hireDate: emp.hireDate,
+        category
+      });
+    }
+    nextStats.total = total;
+    nextStats.active = active;
+    nextStats.leave = leave;
+    nextStats.retired = retired;
+    if (!companyStats) nextStats.excluded = baseExcluded;
+  }
+
+  const stamp = file.name.match(/(20\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const nextSnapshot = stamp
+    ? `${stamp[1]}-${stamp[2]}-${stamp[3]} ${stamp[4]}:${stamp[5]}`
+    : `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  return {
+    snapshot: nextSnapshot,
+    records: parsed,
+    nonTargets: nextNonTargets,
+    companyStats: masterList.length ? nextStats : companyStats
+  };
+}
+
+$("lms-upload")?.addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const btn = $("upload-btn");
+  btn?.classList.add("loading");
+  try {
+    const nextPayload = await parseLmsFile(file);
+    hydrateData(nextPayload);
+    selectedId = null;
+    if ($("admin-view")) applyFilters();
+    if ($("nontarget-view")) applyNonTargetFilters();
+    const donePeople = roster.filter(p => p.done).length;
+    const matched = Object.keys(empMaster).length ? roster.filter(p => empMaster[p.id]).length : roster.length;
+    showUploadToast(`업로드 반영 완료 (${file.name}): 대상 ${count(roster.length)}명 · 수료 ${count(donePeople)}명 (${percent(roster.length ? donePeople / roster.length * 100 : 0)}) · 인사원장 매칭 ${count(matched)}명`);
+  } catch (err) {
+    showUploadToast(`업로드 실패: ${err.message || "파일 형식을 확인해 주세요."}`, true);
+  } finally {
+    btn?.classList.remove("loading");
+    event.target.value = "";
+  }
+});
+
 if ($("admin-view")) applyFilters();
 if ($("nontarget-view")) applyNonTargetFilters();
 route();

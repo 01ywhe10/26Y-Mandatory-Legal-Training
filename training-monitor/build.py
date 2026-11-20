@@ -232,12 +232,29 @@ def main():
                 "category": category,
             })
 
+    emp_master = {
+        emp_id: {
+            "id": emp_id,
+            "name": emp.get("성명", ""),
+            "parentDept": emp.get("상위조직명") or emp.get("조직명") or "(주)삼표시멘트",
+            "department": emp.get("조직명", "") or "(부서 미지정)",
+            "position": emp.get("직위", ""),
+            "jobRole": emp.get("직책", ""),
+            "workplace": emp.get("근무지", ""),
+            "employmentType": emp.get("고용유형", ""),
+            "employmentStatus": emp.get("현직구분", "재직"),
+            "hireDate": emp.get("입사일", ""),
+        }
+        for emp_id, emp in emp_map.items()
+    }
+
     payload = {
         "snapshot": f"{stamp[1]}-{stamp[2]}-{stamp[3]} {stamp[4]}:{stamp[5]}" if stamp else "",
         "empMasterDate": emp_master_date,
         "companyStats": stats,
         "records": records,
         "nonTargets": non_targets,
+        "empMaster": emp_master,
     }
 
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
@@ -273,6 +290,7 @@ def main():
     for start_tag, end_tag in [
         ("<!-- ADMIN_NAV_START -->", "<!-- ADMIN_NAV_END -->"),
         ("<!-- SWITCHER_START -->", "<!-- SWITCHER_END -->"),
+        ("<!-- ADMIN_UPLOAD_START -->", "<!-- ADMIN_UPLOAD_END -->"),
         ("<!-- ADMIN_SECTION_START -->", "<!-- ADMIN_SECTION_END -->"),
         ("<!-- NONTARGET_SECTION_START -->", "<!-- NONTARGET_SECTION_END -->"),
         ("<!-- DETAIL_ASIDE_START -->", "<!-- DETAIL_ASIDE_END -->"),
