@@ -123,6 +123,20 @@ body.rail-collapsed .rail{display:none}
 .btn-group .btn-sm.active{background:#fff;color:var(--ci-blue-dark);font-weight:800;box-shadow:0 1px 3px rgba(13,35,62,0.12)}
 .sort-select{height:31px;border:1px solid var(--line);border-radius:8px;padding:0 24px 0 9px;font-size:.78rem;font-weight:700;color:var(--navy-title);appearance:none;background:linear-gradient(45deg,transparent 50%,#506a85 50%) calc(100% - 12px) 13px/4px 4px no-repeat,linear-gradient(135deg,#506a85 50%,transparent 50%) calc(100% - 8px) 13px/4px 4px no-repeat #fff;cursor:pointer}
 .sort-select:focus{border-color:var(--ci-blue);outline:0}
+.tree-group{border:1px solid #e1ebf4;border-radius:10px;background:#fff;overflow:hidden;margin-bottom:6px}
+.tree-group.is-open .tree-children{display:grid}
+.tree-parent{display:grid;grid-template-columns:24px minmax(110px,1.35fr) minmax(54px,1.4fr) 58px 64px;align-items:center;gap:8px;width:100%;padding:8px 10px;background:#f4f8fc;border:0;text-align:left;color:var(--navy-title);font-size:.87rem;font-weight:750;cursor:pointer;transition:background .12s}
+.tree-parent:hover{background:#eaf3fb}
+.tree-parent[aria-pressed="true"]{background:var(--ci-blue-light);color:var(--ci-blue-dark)}
+.tree-caret{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:.74rem;color:var(--muted);transition:transform .15s,background .12s;cursor:pointer;border:0;background:transparent;padding:0}
+.tree-caret:hover{background:rgba(0,155,211,0.14);color:var(--ci-blue-dark)}
+.tree-group.is-open .tree-caret{transform:rotate(90deg);color:var(--ci-blue-dark)}
+.tree-children{display:none;gap:2px;padding:6px 10px 8px 16px;border-top:1px solid #e8f0f7;background:#fff}
+.tree-child-wrap{position:relative;padding-left:16px}
+.tree-child-wrap::before{content:"";position:absolute;left:4px;top:0;bottom:0;width:1.5px;background:#cddde9}
+.tree-child-wrap:last-child::before{bottom:50%}
+.tree-child-wrap::after{content:"";position:absolute;left:4px;top:50%;width:10px;height:1.5px;background:#cddde9}
+.tree-child-wrap .dept-row{padding:5px 7px;font-size:.83rem}
 .dept-grid{display:grid;gap:5px}
 .dept-grid.expanded{max-height:310px;overflow:auto;scrollbar-gutter:stable}
 .dept-row{display:grid;grid-template-columns:minmax(130px,1.4fr) minmax(54px,1.4fr) 58px 64px;align-items:center;gap:10px;width:100%;padding:6px 8px;background:none;border:0;text-align:left;color:var(--ink);border-radius:7px;font-size:.85rem;transition:background .12s}
@@ -309,7 +323,8 @@ tbody tr:has(.person:hover),tbody tr.selected{background:#e7f3fb}
               <option value="pending">미수료 인원순</option>
             </select>
             <div class="btn-group" role="group" aria-label="조회 부서 보기 구분">
-              <button type="button" id="lookup-tab-parent" class="btn-sm active" aria-pressed="true">상위부서별</button>
+              <button type="button" id="lookup-tab-tree" class="btn-sm active" aria-pressed="true">조직도 트리</button>
+              <button type="button" id="lookup-tab-parent" class="btn-sm" aria-pressed="false">상위부서별</button>
               <button type="button" id="lookup-tab-sub" class="btn-sm" aria-pressed="false">부서별</button>
             </div>
             <button class="btn btn-sm" id="lookup-toggle-depts" type="button" aria-controls="lookup-dept-bars" aria-expanded="false">전체 보기</button>
@@ -411,7 +426,8 @@ let page = 1;
 let selected = null;
 let filtered = [];
 let showAllDepartments = false;
-let deptViewMode = "parent";
+let deptViewMode = "tree";
+const adminOpenTree = new Set();
 
 function matchesParent(person, filter) {
   return filter === "all" || person.parentDept === filter;
@@ -467,13 +483,73 @@ function sortGroups(groups, mode) {
   });
 }
 
-function renderDepartments(list) {
-  const currentParent = $("parent-department").value;
-  const currentDept = $("department").value;
-  const sortMode = $("dept-sort")?.value || "pending";
-  let groups = [];
+function renderDeptPanel(container, toggleBtn, list, viewMode, sortMode, openSet, currentParent, currentDept, showAll) {
+  if (!container) return;
 
-  if (deptViewMode === "parent") {
+  if (viewMode === "tree") {
+    const parentMap = new Map();
+    for (const person of list) {
+      if (!parentMap.has(person.parentDept)) parentMap.set(person.parentDept, []);
+      parentMap.get(person.parentDept).push(person);
+    }
+    const parentGroups = sortGroups(Array.from(parentMap, ([name, group]) => ({
+      name, ...summarize(group), items: group
+    })), sortMode);
+
+    if (openSet.size === 0 && parentGroups.length) {
+      for (const pg of parentGroups.slice(0, 2)) openSet.add(pg.name);
+    }
+
+    const expanded = showAll && parentGroups.length > 5;
+    const shownParents = expanded ? parentGroups : parentGroups.slice(0, 5);
+    if (toggleBtn) {
+      toggleBtn.hidden = parentGroups.length <= 5;
+      toggleBtn.textContent = expanded ? "접기" : "전체 보기";
+      toggleBtn.setAttribute("aria-expanded", String(expanded));
+    }
+    container.classList.toggle("expanded", expanded);
+
+    container.innerHTML = shownParents.length ? shownParents.map(pg => {
+      const childMap = new Map();
+      for (const person of pg.items) {
+        if (!childMap.has(person.department)) childMap.set(person.department, []);
+        childMap.get(person.department).push(person);
+      }
+      const children = sortGroups(Array.from(childMap, ([name, group]) => ({
+        name, parent: pg.name, ...summarize(group)
+      })), sortMode);
+
+      const isOpen = openSet.has(pg.name) || currentParent === pg.name;
+      const parentPressed = currentParent === pg.name && currentDept === "all";
+
+      const childrenHTML = children.map(ch => {
+        const chPressed = currentDept === ch.name;
+        return `<div class="tree-child-wrap">
+          <button class="dept-row" type="button" data-is-parent="false" data-name="${esc(ch.name)}" data-parent="${esc(pg.name)}" aria-pressed="${chPressed}">
+            <div class="dept-row-label"><span>${esc(ch.name)}</span></div>
+            ${progressBar(ch.rate)}
+            <span class="dept-rate num">${percent(ch.rate)}</span>
+            <span class="dept-count num">${count(ch.completed)}/${count(ch.total)}명</span>
+          </button>
+        </div>`;
+      }).join("");
+
+      return `<div class="tree-group ${isOpen ? "is-open" : ""}">
+        <div class="tree-parent" role="button" tabindex="0" data-is-parent="true" data-name="${esc(pg.name)}" aria-pressed="${parentPressed}">
+          <button type="button" class="tree-caret" data-tree-toggle="${esc(pg.name)}" aria-label="${esc(pg.name)} 하위 부서 펼치기/접기" aria-expanded="${isOpen}">▶</button>
+          <div class="dept-row-label"><span>${esc(pg.name)}</span><span class="parent-chip">${children.length}개 팀</span></div>
+          ${progressBar(pg.rate)}
+          <span class="dept-rate num">${percent(pg.rate)}</span>
+          <span class="dept-count num">${count(pg.completed)}/${count(pg.total)}명</span>
+        </div>
+        <div class="tree-children">${childrenHTML}</div>
+      </div>`;
+    }).join("") : '<p class="empty">조건에 맞는 부서가 없습니다.</p>';
+    return;
+  }
+
+  let groups = [];
+  if (viewMode === "parent") {
     const grouped = new Map();
     for (const person of list) {
       if (!grouped.has(person.parentDept)) grouped.set(person.parentDept, []);
@@ -495,15 +571,16 @@ function renderDepartments(list) {
     }), sortMode);
   }
 
-  const expanded = showAllDepartments && groups.length > 6;
+  const expanded = showAll && groups.length > 6;
   const lines = expanded ? groups : groups.slice(0, 6);
-  const toggle = $("toggle-departments");
-  toggle.hidden = groups.length <= 6;
-  toggle.textContent = expanded ? "접기" : "전체 보기";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  $("department-bars").classList.toggle("expanded", expanded);
+  if (toggleBtn) {
+    toggleBtn.hidden = groups.length <= 6;
+    toggleBtn.textContent = expanded ? "접기" : "전체 보기";
+    toggleBtn.setAttribute("aria-expanded", String(expanded));
+  }
+  container.classList.toggle("expanded", expanded);
 
-  $("department-bars").innerHTML = lines.length ? lines.map(group => {
+  container.innerHTML = lines.length ? lines.map(group => {
     const isPressed = group.isParent ? currentParent === group.name : currentDept === group.name;
     const parentChip = !group.isParent && group.parent ? `<span class="parent-chip">${esc(group.parent)}</span>` : "";
     return `<button class="dept-row" type="button" data-is-parent="${group.isParent}" data-name="${esc(group.name)}" data-parent="${esc(group.parent)}" aria-pressed="${isPressed}" aria-label="${esc(group.name)} 수료율 ${percent(group.rate)}, 미수료 ${count(group.pending)}명">
@@ -513,6 +590,13 @@ function renderDepartments(list) {
       <span class="dept-count num">${count(group.completed)}/${count(group.total)}명</span>
     </button>`;
   }).join("") : '<p class="empty">조건에 맞는 부서가 없습니다.</p>';
+}
+
+function renderDepartments(list) {
+  const currentParent = $("parent-department").value;
+  const currentDept = $("department").value;
+  const sortMode = $("dept-sort")?.value || "pending";
+  renderDeptPanel($("department-bars"), $("toggle-departments"), list, deptViewMode, sortMode, adminOpenTree, currentParent, currentDept, showAllDepartments);
 }
 
 function statusBadge(status) {
@@ -627,22 +711,17 @@ $("admin-filters")?.addEventListener("reset", () => {
   }, 0);
 });
 
-$("tab-parent-dept")?.addEventListener("click", () => {
-  deptViewMode = "parent";
-  $("tab-parent-dept").classList.add("active");
-  $("tab-parent-dept").setAttribute("aria-pressed", "true");
-  $("tab-sub-dept").classList.remove("active");
-  $("tab-sub-dept").setAttribute("aria-pressed", "false");
+function setDeptTab(mode) {
+  deptViewMode = mode;
+  for (const [id, m] of [["tab-tree-dept", "tree"], ["tab-parent-dept", "parent"], ["tab-sub-dept", "sub"]]) {
+    $(id)?.classList.toggle("active", m === mode);
+    $(id)?.setAttribute("aria-pressed", String(m === mode));
+  }
   renderDepartments(filtered);
-});
-$("tab-sub-dept")?.addEventListener("click", () => {
-  deptViewMode = "sub";
-  $("tab-sub-dept").classList.add("active");
-  $("tab-sub-dept").setAttribute("aria-pressed", "true");
-  $("tab-parent-dept").classList.remove("active");
-  $("tab-parent-dept").setAttribute("aria-pressed", "false");
-  renderDepartments(filtered);
-});
+}
+$("tab-tree-dept")?.addEventListener("click", () => setDeptTab("tree"));
+$("tab-parent-dept")?.addEventListener("click", () => setDeptTab("parent"));
+$("tab-sub-dept")?.addEventListener("click", () => setDeptTab("sub"));
 
 $("dept-sort")?.addEventListener("change", () => {
   renderDepartments(filtered);
@@ -653,13 +732,23 @@ $("toggle-departments")?.addEventListener("click", () => {
 });
 
 $("department-bars")?.addEventListener("click", event => {
-  const button = event.target.closest("button[data-name]");
+  const caret = event.target.closest("[data-tree-toggle]");
+  if (caret) {
+    event.stopPropagation();
+    const pName = caret.dataset.treeToggle;
+    if (adminOpenTree.has(pName)) adminOpenTree.delete(pName);
+    else adminOpenTree.add(pName);
+    renderDepartments(filtered);
+    return;
+  }
+  const button = event.target.closest("[data-name]");
   if (!button) return;
   const isParent = button.dataset.isParent === "true";
   const name = button.dataset.name;
   if (isParent) {
     const sel = $("parent-department");
     sel.value = sel.value === name ? "all" : name;
+    if (sel.value !== "all") adminOpenTree.add(name);
     updateDeptSelects("parent-department", "department");
   } else {
     const selParent = $("parent-department");
@@ -669,6 +758,7 @@ $("department-bars")?.addEventListener("click", event => {
       selDept.value = "all";
     } else {
       selParent.value = parent;
+      adminOpenTree.add(parent);
       updateDeptSelects("parent-department", "department");
       selDept.value = name;
     }
@@ -785,80 +875,34 @@ $("lookup-form").addEventListener("submit", event => {
   $("lookup-results").innerHTML = list.map(personDetail).join("");
 });
 
-let lookupDeptMode = "parent";
+let lookupDeptMode = "tree";
 let lookupShowAllDepts = false;
+const lookupOpenTree = new Set();
 
 function renderLookupDepts() {
   const container = $("lookup-dept-bars");
   if (!container) return;
   const parentFilter = $("lookup-parent-department").value;
   const deptFilter = $("lookup-department").value;
+  const sortMode = $("lookup-dept-sort")?.value || "rate-desc";
 
   const list = roster.filter(person =>
-    (lookupDeptMode === "parent" || matchesParent(person, parentFilter)) &&
-    (lookupDeptMode === "parent" || matchesDept(person, deptFilter))
+    (lookupDeptMode !== "sub" || (matchesParent(person, parentFilter) && matchesDept(person, deptFilter)))
   );
-
-  const sortMode = $("lookup-dept-sort")?.value || "rate-desc";
-  let groups = [];
-  if (lookupDeptMode === "parent") {
-    const grouped = new Map();
-    for (const person of roster) {
-      if (!grouped.has(person.parentDept)) grouped.set(person.parentDept, []);
-      grouped.get(person.parentDept).push(person);
-    }
-    groups = sortGroups(Array.from(grouped, ([name, group]) => ({
-      name, parent: "", isParent: true, ...summarize(group)
-    })), sortMode);
-  } else {
-    const grouped = new Map();
-    for (const person of list) {
-      const key = `${person.parentDept}|||${person.department}`;
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key).push(person);
-    }
-    groups = sortGroups(Array.from(grouped, ([key, group]) => {
-      const [parent, name] = key.split("|||");
-      return { name, parent, isParent: false, ...summarize(group) };
-    }), sortMode);
-  }
-
-  const expanded = lookupShowAllDepts && groups.length > 6;
-  const lines = expanded ? groups : groups.slice(0, 6);
-  const toggle = $("lookup-toggle-depts");
-  toggle.hidden = groups.length <= 6;
-  toggle.textContent = expanded ? "접기" : "전체 보기";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  container.classList.toggle("expanded", expanded);
-
-  container.innerHTML = lines.length ? lines.map(group => {
-    const isPressed = group.isParent ? parentFilter === group.name : deptFilter === group.name;
-    const parentChip = !group.isParent && group.parent ? `<span class="parent-chip">${esc(group.parent)}</span>` : "";
-    return `<button class="dept-row" type="button" data-is-parent="${group.isParent}" data-name="${esc(group.name)}" data-parent="${esc(group.parent)}" aria-pressed="${isPressed}">
-      <div class="dept-row-label"><span>${esc(group.name)}</span>${parentChip}</div>
-      ${progressBar(group.rate)}
-      <span class="dept-rate num">${percent(group.rate)}</span>
-      <span class="dept-count num">${count(group.completed)}/${count(group.total)}명</span>
-    </button>`;
-  }).join("") : '<p class="empty">조건에 맞는 부서가 없습니다.</p>';
+  renderDeptPanel(container, $("lookup-toggle-depts"), list, lookupDeptMode, sortMode, lookupOpenTree, parentFilter, deptFilter, lookupShowAllDepts);
 }
 
-$("lookup-tab-parent")?.addEventListener("click", () => {
-  lookupDeptMode = "parent";
-  $("lookup-tab-parent").classList.add("active");
-  $("lookup-tab-parent").setAttribute("aria-pressed", "true");
-  $("lookup-tab-sub").classList.remove("active");
-  $("lookup-tab-sub").setAttribute("aria-pressed", "false");
+function setLookupDeptTab(mode) {
+  lookupDeptMode = mode;
+  for (const [id, m] of [["lookup-tab-tree", "tree"], ["lookup-tab-parent", "parent"], ["lookup-tab-sub", "sub"]]) {
+    $(id)?.classList.toggle("active", m === mode);
+    $(id)?.setAttribute("aria-pressed", String(m === mode));
+  }
   renderLookupDepts();
-});
-$("lookup-tab-sub")?.addEventListener("click", () => {
-  lookupDeptMode = "sub";
-  $("lookup-tab-sub").classList.add("active");
-  $("lookup-tab-sub").setAttribute("aria-pressed", "true");
-  $("lookup-tab-parent").classList.remove("active");
-  $("lookup-tab-parent").setAttribute("aria-pressed", "false");
-  renderLookupDepts();
-});
+}
+$("lookup-tab-tree")?.addEventListener("click", () => setLookupDeptTab("tree"));
+$("lookup-tab-parent")?.addEventListener("click", () => setLookupDeptTab("parent"));
+$("lookup-tab-sub")?.addEventListener("click", () => setLookupDeptTab("sub"));
 $("lookup-dept-sort")?.addEventListener("change", () => {
   renderLookupDepts();
 });
@@ -867,13 +911,23 @@ $("lookup-toggle-depts")?.addEventListener("click", () => {
   renderLookupDepts();
 });
 $("lookup-dept-bars")?.addEventListener("click", event => {
-  const button = event.target.closest("button[data-name]");
+  const caret = event.target.closest("[data-tree-toggle]");
+  if (caret) {
+    event.stopPropagation();
+    const pName = caret.dataset.treeToggle;
+    if (lookupOpenTree.has(pName)) lookupOpenTree.delete(pName);
+    else lookupOpenTree.add(pName);
+    renderLookupDepts();
+    return;
+  }
+  const button = event.target.closest("[data-name]");
   if (!button) return;
   const isParent = button.dataset.isParent === "true";
   const name = button.dataset.name;
   if (isParent) {
     const sel = $("lookup-parent-department");
     sel.value = sel.value === name ? "all" : name;
+    if (sel.value !== "all") lookupOpenTree.add(name);
     updateDeptSelects("lookup-parent-department", "lookup-department");
   } else {
     const selParent = $("lookup-parent-department");
@@ -883,6 +937,7 @@ $("lookup-dept-bars")?.addEventListener("click", event => {
       selDept.value = "all";
     } else {
       selParent.value = parent;
+      lookupOpenTree.add(parent);
       updateDeptSelects("lookup-parent-department", "lookup-department");
       selDept.value = name;
     }
