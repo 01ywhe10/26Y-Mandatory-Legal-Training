@@ -272,9 +272,11 @@ body[data-lookup-only="true"] .switcher,body[data-lookup-only="true"] #nav-admin
 .guide-title-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .guide-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:.75rem;font-weight:800;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
 .guide-desc{margin-top:8px;font-size:.88rem;color:var(--muted);line-height:1.55}
-.guide-actions{margin-top:12px;display:flex;align-items:center;gap:8px}
+.guide-actions{margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .guide-banner.collapsed .guide-actions{margin-top:0}
 .guide-toggle{min-height:32px;padding:4px 10px;font-size:.8rem}
+.guide-manual{min-height:32px;padding:4px 12px;font-size:.8rem;display:inline-flex;align-items:center;gap:5px;background:var(--ci-blue);border-color:var(--ci-blue);color:#fff;font-weight:700}
+.guide-manual:hover{background:var(--ci-blue-dark);border-color:var(--ci-blue-dark)}
 .video-wrap{border-radius:10px;overflow:hidden;background:#091a2e;border:1px solid var(--line);box-shadow:0 4px 12px rgba(13,35,62,0.1)}
 .video-wrap video{width:100%;max-height:220px;display:block;background:#091a2e}
 @media(max-width:960px){.guide-banner{grid-template-columns:1fr}.video-wrap video{max-height:260px}}
@@ -335,6 +337,7 @@ body[data-lookup-only="true"] .switcher,body[data-lookup-only="true"] #nav-admin
         <p class="guide-desc">아직 교육을 이수하지 않으신 대상자께서는 안내 영상을 참고하여 학습 기간 내에 접속 및 수료를 완료해 주시기 바랍니다.</p>
         <div class="guide-actions">
           <button type="button" class="btn guide-toggle" id="toggle-guide" aria-expanded="true" aria-controls="guide-media">안내 영상 접기</button>
+          <a href="./`26년 법정의무교육 수강 매뉴얼_교육생용.pdf" id="manual-link" class="btn guide-manual" target="_blank" rel="noopener">📄 수강 매뉴얼(PDF) 열기</a>
         </div>
       </div>
       <div class="guide-media" id="guide-media">
@@ -1535,6 +1538,18 @@ $("toggle-guide")?.addEventListener("click", () => {
   btn.textContent = collapsed ? "안내 영상 펼치기" : "안내 영상 접기";
   btn.setAttribute("aria-expanded", String(!collapsed));
   if (collapsed) $("guide-video")?.pause();
+});
+$("manual-link")?.addEventListener("click", event => {
+  const link = event.currentTarget;
+  const href = link.getAttribute("href") || "";
+  if (!href.startsWith("data:application/pdf;base64,")) return;
+  event.preventDefault();
+  const b64 = href.slice("data:application/pdf;base64,".length);
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const blobUrl = URL.createObjectURL(new Blob([bytes], {type: "application/pdf"}));
+  window.open(blobUrl, "_blank", "noopener");
 });
 $("toggle-rail")?.addEventListener("click", () => {
   const collapsed = document.body.classList.toggle("rail-collapsed");

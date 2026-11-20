@@ -271,6 +271,17 @@ def main():
         )
         print(f"안내 동영상 인라인 임베드 완료 ({video_path.name}: {video_path.stat().st_size / 1024 / 1024:.2f} MB)")
 
+    pdf_candidates = list(folder.parent.glob("*.pdf")) + list(folder.glob("*.pdf"))
+    pdf_path = pdf_candidates[0] if pdf_candidates else None
+    if pdf_path and pdf_path.exists():
+        pdf_b64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
+        template = template.replace(
+            'href="./`26년 법정의무교육 수강 매뉴얼_교육생용.pdf"',
+            f'href="data:application/pdf;base64,{pdf_b64}"',
+            1,
+        )
+        print(f"수강 매뉴얼 PDF 인라인 임베드 완료 ({pdf_path.name}: {pdf_path.stat().st_size / 1024:.1f} KB)")
+
     output = folder.parent / "training-monitor.html"
     compiled = template.replace("<!-- REPORT_DATA -->", data, 1)
     output.write_text(compiled, encoding="utf-8")
